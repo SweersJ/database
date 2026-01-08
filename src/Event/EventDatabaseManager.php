@@ -115,7 +115,39 @@ class EventDatabaseManager extends DatabaseManager
         }
 
         return new PinnedEvent(
-            $pinId,
+            (int) $row['pin_id'],
+            (int) $row['event_id'],
+            safeDateTime((string)$row['start_at']),
+            safeDateTime((string)$row['end_at'])
+        );
+    }
+
+    /**
+     * @param int $eventId
+     * @return PinnedEvent|null
+     * @throws Exception
+     * @throws mysqli_sql_exception
+     */
+    public function getPinnedEventByEventId(int $eventId): ?PinnedEvent
+    {
+        if ($eventId <= 0){
+            return null;
+        }
+
+        $row = $this->executeReadOne(
+            "SELECT `pin_id`, `event_id`, `start_at`, `end_at` 
+            FROM `pins` 
+            WHERE `event_id` = ?",
+            [$eventId],
+            "i"
+        );
+
+        if ($row === null){
+            throw new Exception("Pinned event with event id $eventId not found");
+        }
+
+        return new PinnedEvent(
+            (int) $row['pin_id'],
             (int) $row['event_id'],
             safeDateTime((string)$row['start_at']),
             safeDateTime((string)$row['end_at'])
