@@ -4,6 +4,7 @@ namespace Compucie\Database\Member;
 
 use Compucie\Database\Member\Exceptions\ActivationTokenNotFoundException;
 use Compucie\Database\Member\Exceptions\CardNotRegisteredException;
+use Compucie\Database\Member\Model\MemberAccess;
 use DateTime;
 use Exception;
 use mysqli;
@@ -24,6 +25,19 @@ trait RfidTableManager
                 `is_email_confirmed` BOOLEAN NOT NULL DEFAULT FALSE,
                 `last_used_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (`card_id`)
+            );"
+        );
+        if ($statement){
+            $statement->execute();
+            $statement->close();
+        }
+
+        $statement = $this->getClient()->prepare(
+            "CREATE TABLE IF NOT EXISTS `access` (
+                `congressus_member_id` INT NOT NULL,
+                `reason` VARCHAR(255) DEFAULT NULL,
+                `has_access` BOOLEAN NOT NULL DEFAULT FALSE,
+                PRIMARY KEY (`congressus_member_id`)
             );"
         );
         if ($statement){
@@ -175,5 +189,155 @@ trait RfidTableManager
             $congressusMemberId,
             ['`is_email_confirmed` = TRUE']
         );
+    }
+
+    /**
+     * @param int $congressusMemberId
+     * @param string $reason
+     * @param bool $hasAccess
+     * @return int
+     * @throws mysqli_sql_exception
+     */
+    public function addMemberAccess(int $congressusMemberId, string $reason, bool $hasAccess = false): int
+    {
+        return $this->executeCreate(
+            "access",
+            ["`congressus_member_id`", "`reason`", "`has_access`"],
+            [
+                $congressusMemberId,
+                $reason,
+                $hasAccess,
+            ],
+            "isi"
+        );
+    }
+
+    /**
+     * @return array<MemberAccess>
+     * @throws mysqli_sql_exception
+     */
+    public function getAllMemberAccesses(): array
+    {
+        $rows = $this->executeReadAll(
+            "SELECT `congressus_member_id`, `reason`, `has_access`
+            FROM `access`"
+        );
+
+        $memberAccesses = [];
+
+        foreach ($rows as $row) {
+            $memberAccesses[] = new MemberAccess(
+                (int) $row['congressus_member_id'],
+                $row['reason'],
+                (bool)$row['has_access']
+            );
+        }
+        return $memberAccesses;
+    }
+
+    /**
+     * @param int $congressusMemberId
+     * @return MemberAccess|null
+     * @throws Exception
+     * @throws mysqli_sql_exception
+     */
+    public function getMemberAccesses(int $congressusMemberId): ?MemberAccess
+    {
+        if ($congressusMemberId <= 0){
+            return null;
+        }
+
+        $row = $this->executeReadOne(
+            "SELECT `congressus_member_id`, `reason`, `has_access` 
+            FROM `access` 
+            WHERE `congressus_member_id` = ?",
+            [$congressusMemberId],
+            "i"
+        );
+
+        if ($row === null){
+            throw new Exception("Member access for $congressusMemberId not found");
+        }
+
+        return new MemberAccess(
+            $congressusMemberId,
+            $row['reason'],
+            (bool)$row['has_access']
+        );
+    }
+
+    /**
+     * @param int $congressusMemberId
+     * @param string|null $reason
+     * @param bool|null $hasAccess
+     * @param bool $clearReason
+     * @return bool
+     * @throws mysqli_sql_exception
+     */
+    public function updateMemberAccess(
+        int $congressusMemberId,
+        ?string $reason = null,
+        ?bool $hasAccess = null,
+        bool $clearReason = false
+    ): bool {
+        $fields = [];
+        $params = [];
+        $types  = '';
+
+        if ($clearReason) {
+            $fields[] = 'reason = NULL';
+        } elseif ($reason !== null) {
+            $fields[] = 'reason = ?';
+            $params[] = $reason;
+            $types   .= 's';
+        }
+
+        if ($hasAccess !== null) {
+            $fields[] = 'has_access = ?';
+            $params[] = $hasAccess;
+            $types   .= 'i';
+        }
+
+        return $this->executeUpdate('access', 'congressus_member_id', $congressusMemberId, $fields, $params, $types);
+    }
+
+    /**
+     * @param int $congressusMemberId
+     * @param string $reason
+     * @return bool
+     * @throws mysqli_sql_exception
+     * @throws Exception
+     */
+    public function revokeMemberAccess(int $congressusMemberId, string $reason): bool
+    {
+        if ($reason === "") {
+            throw new Exception("Revoke member access reason cannot be empty");
+        }
+        return $this->updateMemberAccess($congressusMemberId, $reason, false);
+    }
+
+    /**
+     * @param int $congressusMemberId
+     * @param string $reason
+     * @return bool
+     * @throws mysqli_sql_exception
+     * @throws Exception
+     */
+    public function approveMemberAccess(int $congressusMemberId, string $reason): bool
+    {
+        if ($reason === "") {
+            throw new Exception("Approve member access reason cannot be empty");
+        }
+        return $this->updateMemberAccess($congressusMemberId, $reason, true);
+    }
+
+    /**
+     * @param int $congressusMemberId
+     * @return bool
+     * @throws mysqli_sql_exception
+     */
+    public function deleteMemberAccess(int $congressusMemberId): bool
+    {
+        return $this->executeDelete("access", "congressus_member_id", $congressusMemberId);
     }
 }
