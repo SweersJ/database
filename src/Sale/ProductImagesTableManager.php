@@ -96,7 +96,7 @@ trait ProductImagesTableManager
                 '`mime_type` = ?'
             ],
             [$path, $imageName, $extension, $mimeType],
-            'ss'
+            'ssss'
         );
     }
 }
