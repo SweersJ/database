@@ -60,7 +60,7 @@ trait ProductImagesTableManager
         $row = $this->executeReadOne(
             "SELECT * 
             FROM `product_images` 
-            WHERE `productId` = ?",
+            WHERE `product_id` = ?",
             [$productId],
             "i"
         );
