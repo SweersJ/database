@@ -12,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use Throwable;
 use function PHPUnit\Framework\assertNotNull;
 use function PHPUnit\Framework\assertSame;
+use function PHPUnit\Framework\assertTrue;
 
 class SaleDatabaseManagerTest extends TestCase
 {
@@ -26,13 +27,13 @@ class SaleDatabaseManagerTest extends TestCase
             $this->dbm->createTables();
             $this->dbh = new DbTestHelper($this->dbm->client());
 
-            $this->dbh->truncateTables(['purchases', 'purchase_items']);
+            $this->dbh->truncateTables(['purchases', 'purchase_items', 'products', 'product_images']);
         }
     }
 
     protected function tearDown(): void
     {
-        $this->dbh->truncateTables(['purchases', 'purchase_items']);
+        $this->dbh->truncateTables(['purchases', 'purchase_items', 'products', 'product_images']);
     }
 
     /**
@@ -273,6 +274,40 @@ class SaleDatabaseManagerTest extends TestCase
         );
         assertSame(1, $this->dbh->rowCount(
             'products', 'product_id = 4 AND product_name = "Product 4" AND unit_price = 0.00')
+        );
+    }
+
+    public function testGetProductImageException(): void
+    {
+        $this->expectException(Exception::class);
+        $this->expectExceptionMessage("Product image 2 not found");
+
+        $this->dbm->getProductImage(2);
+    }
+
+    public function testAddProductImage(): void
+    {
+        $createdId = $this->dbm->addProductImage(2, "/public/Candy/", "image", "jpg", 'image/jpeg');
+        assertSame(2, $createdId);
+        assertSame(1, $this->dbh->rowCount(
+            'product_images', 'product_id = 2 AND path = "/public/Candy/" AND image_name = "image" AND extension = "jpg" AND mime_type = "image/jpeg"')
+        );
+    }
+
+    public function testUpdateProductImage(): void
+    {
+        $createdId = $this->dbm->addProductImage(2, "/public/Candy/", "image", "jpg", 'image/jpeg');
+        assertSame(2, $createdId);
+        assertSame(1, $this->dbh->rowCount('product_images'));
+        assertSame(1, $this->dbh->rowCount(
+            'product_images', 'product_id = 2 AND path = "/public/Candy/" AND image_name = "image" AND extension = "jpg" AND mime_type = "image/jpeg"')
+        );
+
+        $updated = $this->dbm->updateProductImage(2, "/public/Cookies/", "image2", "png", 'image/png');
+        assertTrue($updated);
+        assertSame(1, $this->dbh->rowCount('product_images'));
+        assertSame(1, $this->dbh->rowCount(
+            'product_images', 'product_id = 2 AND path = "/public/Cookies/" AND image_name = "image2" AND extension = "png" AND mime_type = "image/png"')
         );
     }
 }
