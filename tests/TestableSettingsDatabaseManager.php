@@ -2,10 +2,10 @@
 
 namespace Compucie\DatabaseTest;
 
-use Compucie\Database\Settings\SettingsTableManager;
+use Compucie\Database\Settings\SettingsDatabaseManager;
 use mysqli;
 
-final class TestableSettingsDatabaseManager extends SettingsTableManager
+final class TestableSettingsDatabaseManager extends SettingsDatabaseManager
 {
     public function client(): mysqli
     {

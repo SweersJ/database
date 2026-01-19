@@ -6,7 +6,7 @@ use Compucie\Database\DatabaseManager;
 use Compucie\Database\Settings\Exceptions\NoSettingsException;
 use Compucie\Database\Settings\Model\Settings;
 
-class SettingsTableManager extends DatabaseManager
+class SettingsDatabaseManager extends DatabaseManager
 {
 
     public function createTables(): void
