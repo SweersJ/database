@@ -5,10 +5,12 @@ namespace Compucie\Database\Member;
 use Compucie\Database\Member\Exceptions\ActivationTokenNotFoundException;
 use Compucie\Database\Member\Exceptions\CardNotRegisteredException;
 use Compucie\Database\Member\Model\MemberAccess;
+use Compucie\Database\Member\Model\Rfid;
 use DateTime;
 use Exception;
 use mysqli;
 use mysqli_sql_exception;
+use function Compucie\Database\safeDateTime;
 
 trait RfidTableManager
 {
@@ -44,6 +46,35 @@ trait RfidTableManager
             $statement->execute();
             $statement->close();
         }
+    }
+
+    /**
+     * @param int $congressusMemberId
+     * @return Rfid
+     * @throws CardNotRegisteredException
+     */
+    public function getRfid(int $congressusMemberId): Rfid
+    {
+        $row = $this->executeReadOne(
+            "SELECT *
+         FROM `rfid`
+         WHERE `congressus_member_id` = ?",
+            [$congressusMemberId],
+            "i"
+        );
+
+        if ($row === null || (int)$row['congressus_member_id'] === 0) {
+            throw new CardNotRegisteredException();
+        }
+
+        return new Rfid(
+            (string) $row['card_id'],
+            (int) $row['congressus_member_id'],
+            (string) $row['hashed_activation_token'],
+            (string) $row['activation_token_valid_until'],
+            (bool) $row['is_email_confirmed'],
+            safeDateTime($row['last_used_at'])
+        );
     }
 
     /**
