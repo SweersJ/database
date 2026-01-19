@@ -27,13 +27,13 @@ class MemberDatabaseManagerTest extends TestCase
             $this->dbm->createTables();
             $this->dbh = new DbTestHelper($this->dbm->client());
 
-            $this->dbh->truncateTables(['screen_birthdays', 'rfid']);
+            $this->dbh->truncateTables(['screen_birthdays', 'rfid', 'access']);
         }
     }
 
     protected function tearDown(): void
     {
-//        $this->dbh->truncateTables(['screen_birthdays','rfid']);
+        $this->dbh->truncateTables(['screen_birthdays','rfid', 'access']);
     }
 
     public function testGetMemberIdsWithBirthdayToday(): void
@@ -260,5 +260,23 @@ class MemberDatabaseManagerTest extends TestCase
              AND activation_token_valid_until IS NOT NULL"
             )
         );
+    }
+
+    /**
+     * @throws RandomException
+     * @throws CardNotRegisteredException
+     */
+    public function testGetRfid(): void
+    {
+        $tokenData = $this->generateActivationTokenData();
+
+        $this->dbm->insertRfid("deadbeaf", 123, $tokenData['hashedActivationToken'], $tokenData['activationTokenValidUntil']);
+        assertSame(1,$this->dbh->rowCount(
+            'rfid',
+            "card_id = 'deadbeaf' AND congressus_member_id = 123 AND is_email_confirmed = 0 AND hashed_activation_token IS NOT NULL AND activation_token_valid_until IS NOT NULL"
+        ));
+
+        $rfid = $this->dbm->getRfid(123);
+        assertNotNull($rfid);
     }
 }
