@@ -5,6 +5,7 @@ namespace Compucie\Database\Settings;
 use Compucie\Database\DatabaseManager;
 use Compucie\Database\Settings\Exceptions\NoSettingsException;
 use Compucie\Database\Settings\Model\Settings;
+use function Compucie\Database\safeDateTime;
 
 class SettingsDatabaseManager extends DatabaseManager
 {
@@ -41,6 +42,7 @@ class SettingsDatabaseManager extends DatabaseManager
 
         return new Settings(
             (string) $row['id'],
+            safeDateTime($row['last_updated']),
             (bool) $row['temp_student_number_login']
         );
     }
