@@ -41,7 +41,7 @@ class SettingsDatabaseManager extends DatabaseManager
 
         return new Settings(
             (string) $row['id'],
-            (bool) $row['is_email_confirmed']
+            (bool) $row['temp_student_number_login']
         );
     }
 
