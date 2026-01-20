@@ -15,6 +15,7 @@ class SettingsDatabaseManager extends DatabaseManager
         $statement = $this->getClient()->prepare(
             "CREATE TABLE IF NOT EXISTS `settings` (
                 `id` INT NOT NULL AUTO_INCREMENT,
+                `user_id` INT NOT NULL,
                 `last_updated` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 `temp_student_number_login` TINYINT DEFAULT FALSE,
                 PRIMARY KEY (`id`)
@@ -26,6 +27,9 @@ class SettingsDatabaseManager extends DatabaseManager
         }
     }
 
+    /**
+     * @throws NoSettingsException
+     */
     public function getSettings(int $id): Settings
     {
         $row = $this->executeReadOne(
@@ -41,7 +45,35 @@ class SettingsDatabaseManager extends DatabaseManager
         }
 
         return new Settings(
-            (string) $row['id'],
+            (int) $row['id'],
+            (int) $row['user_id'],
+            safeDateTime($row['last_updated']),
+            (bool) $row['temp_student_number_login']
+        );
+    }
+
+    /**
+     * @throws NoSettingsException
+     */
+    public function getLastSettingsByUserId(int $userId): Settings
+    {
+        $row = $this->executeReadOne(
+            "SELECT *
+         FROM `settings`
+         WHERE `user_id` = ?
+         ORDER BY `id` DESC
+         LIMIT 1",
+            [$userId],
+            "i"
+        );
+
+        if ($row === null) {
+            throw new NoSettingsException();
+        }
+
+        return new Settings(
+            (int) $row['id'],
+            (int) $row['user_id'],
             safeDateTime($row['last_updated']),
             (bool) $row['temp_student_number_login']
         );
@@ -59,13 +91,13 @@ class SettingsDatabaseManager extends DatabaseManager
         );
     }
 
-    public function addSettings(bool $tempStudentNumberLogin): int
+    public function addSettings(int $userId, bool $tempStudentNumberLogin): int
     {
         return $this->executeCreate(
             'settings',
-            ['temp_student_number_login'],
-            [$tempStudentNumberLogin],
-            "i"
+            ['user_id', 'temp_student_number_login'],
+            [$userId, $tempStudentNumberLogin],
+            "ii"
         );
     }
 }

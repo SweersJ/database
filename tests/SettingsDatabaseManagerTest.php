@@ -4,6 +4,7 @@ use Compucie\Database\Settings\Exceptions\NoSettingsException;
 use Compucie\DatabaseTest\DbTestHelper;
 use Compucie\DatabaseTest\TestableSettingsDatabaseManager;
 use PHPUnit\Framework\TestCase;
+use function PHPUnit\Framework\assertSame;
 
 class SettingsDatabaseManagerTest extends TestCase
 {
@@ -32,7 +33,7 @@ class SettingsDatabaseManagerTest extends TestCase
      */
     public function testAddAndGetSettings(): void
     {
-        $ok = $this->dbm->addSettings(true);
+        $ok = $this->dbm->addSettings(1, true);
         $this->assertSame(1, $ok);
 
         $settings = $this->dbm->getSettings(1);
@@ -46,7 +47,7 @@ class SettingsDatabaseManagerTest extends TestCase
      */
     public function testUpdateTempStudentNumberLogin(): void
     {
-        $this->assertSame(1, $this->dbm->addSettings(false));
+        $this->assertSame(1, $this->dbm->addSettings(1, false));
 
         $this->assertTrue($this->dbm->updateTempStudentNumberLogin(1, true));
 
@@ -60,4 +61,19 @@ class SettingsDatabaseManagerTest extends TestCase
         $this->dbm->getSettings(999);
     }
 
+    /**
+     * @throws NoSettingsException
+     */
+    public function testGetLastSettingsByUserId(): void
+    {
+        $ok = $this->dbm->addSettings(1,true);
+        $this->assertSame(1, $ok);
+
+        $ok = $this->dbm->addSettings(1,true);
+        $this->assertSame(2, $ok);
+
+        $settings = $this->dbm->getLastSettingsByUserId(1);
+
+        assertSame(2, $settings->getId());
+    }
 }
